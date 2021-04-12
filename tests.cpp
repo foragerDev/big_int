@@ -16,7 +16,7 @@ void constructor_test() {
 	big_int int_neg(-1234);
 
 	//c. 'long long' parameterized constructor
-	big_int long_long_pos(999999999999);
+	big_int long_long_pos(9099999999999);
 	big_int long_long_neg(-999999999999);
 
 	//d. 'string' parameterized constructor

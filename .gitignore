@@ -2,3 +2,6 @@
 *.exe
 *.debug
 *.swp
+.vscode
+*.out
+*.txt
