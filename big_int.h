@@ -32,7 +32,8 @@ public:
     BigInt(const std::string &str_value);
 
     // Getter and Setters
-    template <typename T, typename = std::enable_if<std::is_integral<T>::value, bool>>
+
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
     void set_value(T num)
     {
         if (num < 0)
