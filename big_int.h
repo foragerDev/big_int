@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 #include <type_traits>
 
 class BigInt
@@ -13,13 +14,15 @@ private:
     bool m_is_negative;
 
     // Helper Methods
-    void remove_lead_zeros(std::string &value);
+    void remove_lead_zeros(const std::string &value);
     bool is_number(const std::string &str_value) const;
     BigInt handle_add(BigInt &first_op, BigInt &second_op);
     BigInt handle_subtract(BigInt &first_op, BigInt &second_op);
 
-    BigInt slow_multiply(BigInt &multiple);
-    BigInt karatsuba_multiply(BigInt &multiple);
+    std::string slow_multiply(const std::string &first_op, const std::string &second_op) const;
+    std::string karatsuba_multiply(const std::string &first_op, const std::string &second_op) const;
+    std::string helper_adder(const std::string &first_op, const std::string &second_op) const;
+    std::string helper_subtractor(const std::string &first_op, const std::string &second_op) const;
 
     std::pair<BigInt, BigInt> div_mod(BigInt &divider);
 
@@ -75,6 +78,47 @@ public:
     BigInt &operator*=(const BigInt &second_op);
     BigInt &operator/=(const BigInt &second_op);
     BigInt &operator%=(const BigInt &second_op);
+
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator+(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator-(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator*(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator/(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator%(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator+=(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator-=(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator*=(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator/=(const T &second_op)
+    {
+    }
+    template <typename T, typename std::enable_if<std::is_integral<T>::value, bool>::type = true>
+    BigInt &operator%=(const T &second_op)
+    {
+    }
 
     BigInt &operator++(int);
     BigInt &operator++();

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <stdexcept>
+#include <vector>
 #include <limits>
 #include "big_int.h"
 
@@ -24,7 +25,7 @@ BigInt::BigInt(const std::string &str_value) : m_value(str_value)
 }
 
 //Helpers
-void BigInt::remove_lead_zeros(std::string &value)
+void BigInt::remove_lead_zeros(const std::string &value)
 {
     m_value.erase(0, std::min(m_value.find_last_not_of('0'), m_value.size() - 1));
 }
@@ -132,7 +133,6 @@ bool BigInt::fits_in_ll() const
     auto u_max = std::to_string(std::numeric_limits<unsigned long long>::max());
     if (m_is_negative)
     {
-
         auto min = std::to_string(std::numeric_limits<long long>::min());
         auto max = std::to_string(std::numeric_limits<long long>::max());
         return (m_value <= max && m_value >= min);
@@ -166,22 +166,135 @@ BigInt &BigInt::divide_10(int count)
     return *this;
 }
 
-BigInt &BigInt::add(const BigInt &num)
-{   
-    std::string temp;
-    if((m_is_negative && num.m_is_negative) || (!m_is_negative && !num.m_is_negative)){
-        int carry = 0;
-        int index_a = m_value.length() - 1, index_b = m_value.length() - 1;
-        while(index_a >= 0 || index_b >= 0 || carry){
-            int current_sum = 0;
-            if(index_a >= 0) current_sum += (m_value[index_a] - '0'), index_a--;
-            if (index_b >= 0) current_sum += (num.m_value[index_b] - '0'), index_b--;
-            current_sum += carry;
-            temp += ((current_sum % 10) + '0');
-            carry = (current_sum / 10); 
-        }
-        std::reverse(temp.begin(), temp.end());
-        m_value = temp; 
+std::string BigInt::helper_adder(const std::string &first_op, const std::string &second_op) const
+{
+    std::string sum;
+    int carry = 0;
+    int index_a = first_op.length() - 1, index_b = second_op.length() - 1;
+    while (index_a >= 0 || index_b >= 0 || carry)
+    {
+        int current_sum = 0;
+        if (index_a >= 0)
+            current_sum += (first_op[index_a] - '0'), index_a--;
+        if (index_b >= 0)
+            current_sum += (second_op[index_b] - '0'), index_b--;
+        current_sum += carry;
+        sum += ((current_sum % 10) + '0');
+        carry = (current_sum / 10);
     }
+    std::reverse(sum.begin(), sum.end());
+    return sum;
+}
+
+std::string BigInt::helper_subtractor(const std::string &first_op, const std::string &second_op) const
+{
+    std::string result;
+    std::string _first_op = first_op;
+    std::string _second_op = second_op;
+    int index_a = _first_op.length() - 1, index_b = _second_op.length() - 1;
+    while (index_a >= 0 && index_b >= 0)
+    {
+        if (_first_op[index_a] >= _second_op[index_b])
+        {
+            result += (((_first_op[index_a] - '0') - (_second_op[index_b] - '0') + '0'));
+            index_a--, index_b--;
+            continue;
+        }
+        int temp = index_a - 1;
+        _first_op[temp] = temp == '0' ? '9' : _second_op[temp]--;
+        int y = (_first_op[index_a] - '0') + 10;
+        result += ((y - (_second_op[index_b] - '0')) + '0');
+    }
+    while (index_a >= 0)
+        result += m_value[index_a];
+    std::reverse(result.begin(), result.end());
+    return result;
+}
+
+BigInt &BigInt::add(const BigInt &num)
+{
+    std::string temp;
+    if ((m_is_negative && num.m_is_negative) || (!m_is_negative && !num.m_is_negative))
+    {
+        m_value = helper_adder(m_value, num.m_value);
+        return *this;
+    }
+    return subtract(num);
+}
+
+BigInt &BigInt::subtract(const BigInt &num)
+{
+    if (m_is_negative && num.m_is_negative)
+    {
+        return this->add(num);
+    }
+    if (this->is_smaller(num))
+    {
+        BigInt temp = num;
+        *this = temp.subtract(*this);
+        return *this;
+    }
+    m_value = helper_subtractor(m_value, num.m_value);
+    remove_lead_zeros(m_value);
     return *this;
+}
+
+std::string BigInt::slow_multiply(const std::string &multiple, const std::string &multiplier) const
+{
+    std::vector<unsigned long long> result{multiple.length() + multiplier.length(), 0};
+    for (size_t i = multiple.size(); i >= 0; --i)
+    {
+        for (size_t j = multiplier.size(); j >= 0; --j)
+        {
+            result[i + j + 1] = multiple[i] * multiplier[j];
+            result[i + j] = result[i + j + 1] / 10;
+            result[i + j + 1] %= 10;
+        }
+    }
+
+    result = {find_if_not(result.begin(), result.end(), [](int a) { return a == 0; }), result.end()};
+    return result.empty() ? "0" : std::string(result.begin(), result.end());
+}
+
+std::string BigInt::karatsuba_multiply(const std::string &multiple, const std::string &multiplier) const
+{
+    if (multiple.length() < 10 || multiplier.length() < 10)
+    {
+        return slow_multiply(multiple, multiplier);
+    }
+    size_t min_size = std::min(multiple.length(), multiplier.length());
+    int mid = min_size / 2;
+
+    std::pair<std::string, std::string> high_low_1 = {
+        std::string(multiple.begin(), multiple.begin() + mid),
+        std::string(multiple.begin() + mid, multiple.end())};
+
+    std::pair<std::string, std::string> high_low_2 = {
+        std::string(multiplier.begin(), multiplier.begin() + mid),
+        std::string(multiplier.begin() + mid, multiplier.end())};
+
+    std::string z0 = karatsuba_multiply(high_low_1.second, high_low_1.second);
+    std::string z1 = karatsuba_multiply(helper_adder(high_low_1.second, high_low_1.first), helper_adder(high_low_2.second, high_low_1.first));
+    std::string z2 = karatsuba_multiply(high_low_1.first, high_low_2.first);
+
+    // (z2 × 10 ^ (m2 × 2)) + ((z1 - z2 - z0) × 10 ^ m2) + z0
+    std::string expression_1 = karatsuba_multiply(z2, std::to_string(pow(10, mid * 2)));
+    std::string expression_2 = helper_subtractor(z1, z2);
+    expression_2 = helper_subtractor(expression_2, z0);
+    expression_2 = karatsuba_multiply(expression_2, std::to_string(pow(10, mid)));
+    std::string answer = helper_adder(expression_1, expression_2);
+    return helper_adder(answer, z0);
+}
+
+BigInt &BigInt::multiply(const BigInt &multiplier)
+{
+    m_is_negative = (m_is_negative && multiplier.m_is_negative) || (!m_is_negative && !multiplier.m_is_negative) ? false : true;
+    m_value = karatsuba_multiply(m_value, multiplier.m_value);
+    return *this;
+}
+
+//Operators
+
+BigInt& BigInt::operator ++(int){
+    auto num = 
 }
